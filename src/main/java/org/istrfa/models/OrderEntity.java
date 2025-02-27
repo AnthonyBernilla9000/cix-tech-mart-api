@@ -28,14 +28,11 @@ public class OrderEntity {
     @Column(name="tbl_order_last_name")
     private String lastname;
 
-    @Column(name="tbl_order_company_name")
-    private String companyname;
-
     @Column(name = "tbl_order_phone")
     private String phone;
 
-    @Column(name = "tbl_order_email")
-    private String email;
+    @Column(name = "tbl_order_num_doc")
+    private String numberdocument;
 
     @Column(name = "tbl_order_address")
     private String address;

@@ -16,6 +16,7 @@ public class OrderPostDTO {
     private String firstname;
     private String lastname;
     private String phone;
+    private String numberdocument;
     private String address;
     private UUID distritoId;
     private UUID clientId;

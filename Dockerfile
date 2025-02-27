@@ -5,7 +5,7 @@ FROM openjdk:11-jdk-slim
 LABEL maintainer="Kevin Developer web"
 
 # Expone el puerto 8080 en el contenedor
-EXPOSE 8081
+EXPOSE 8080
 
 # Establece el directorio de trabajo en /app
 WORKDIR /app
