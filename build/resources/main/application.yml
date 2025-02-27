@@ -1,0 +1,66 @@
+server:
+  servlet:
+    context-path: /cix-tech-mart-api/v1/
+  port: 8081
+
+# Configuración PostgreSQL básica
+spring:
+  datasource:
+    url: jdbc:postgresql://34.170.230.74:5432/cix-tech-mart-bd
+    username: developer
+    password: developer # Contraseña
+
+  jpa:
+    database: POSTGRESQL
+    properties:
+      hibernate:
+        jdbc:
+          lob:
+            non_contextual_creation: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect # Corregido
+services:
+  api-peru: https://dniruc.apisperu.com/api/v1
+#  api-billing: http://localhost:8081/cix-tech-mart-api-billing/v1
+  api-billing: http://localhost:8082/cix-tech-mart-api-billing/v1
+
+logging:
+  pattern:
+    level: '%5p %mdc'
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: DEBUG
+    org.springframework: DEBUG
+    org.springframework.data: TRACE
+
+templates:
+  order-succes: /templates/order-succes.html
+  order-pay: /templates/order-pay.html
+  order-send: /templates/order-send.html
+  solit-refund: /templates/solit-refund.html
+  refund-aproveed: /templates/refund-approved.html
+
+imgs:
+  image-logo: imgs/logo_cix_new.png
+
+files:
+  certificate-sunat: files/certificado-sunat.p12
+
+directory:
+  folder-xmls: /mnt/cixtechmart-container/sunat/xmls
+
+sunat:
+  path-apache-org-xml: http://apache.org/xml/features/disallow-doctype-decl #Para construcción XML
+  service-web-factura: https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService # SERVICIO DE PRUEBA BETA
+  xmlns-ser: http://service.sunat.gob.pe
+  xmlns-wss: http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd
+
+
+# Para Swagger
+# Ruta del json: https://landing-test.vuce.gob.pe/vuce-zee-api-configuracion/v2/api-docs
+springdoc:
+  swagger-ui:
+    enabled: false
+
+#Clave secreta de stripe
+stripe:
+  key-secret: sk_test_51Qj2SdH9VL1faGtj43JxIJgTyeTm1AxV5SNLccmw8ojxeQ9QE4yDtlks4FV4LzlUiSsT0ux8dCodATOHNOSMeTdw002HPRr39T
