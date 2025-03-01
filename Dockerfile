@@ -1,18 +1,14 @@
-# Usa una imagen base de OpenJDK 11 para ejecutar la aplicación
+# Usa una imagen oficial de OpenJDK 11 (Debian Slim es más ligero)
 FROM openjdk:11-jdk-slim
 
-# Metadata del mantenimiento de la imagen
-LABEL maintainer="Kevin Developer web"
-
-# Expone el puerto 8080 en el contenedor
-EXPOSE 8080
-
-# Establece el directorio de trabajo en /app
+# Define el directorio de trabajo dentro del contenedor
 WORKDIR /app
 
-# Copia el JAR construido de tu aplicación Spring Boot desde el directorio build/libs de tu proyecto
-#COPY build/libs/*.jar app.jar
-COPY build/libs/cix_tech_mart_api-1.0-SNAPSHOT.jar app.jar
+# Copia el archivo JAR a la imagen
+COPY target/*.jar app.jar
 
-# Comando para ejecutar la aplicación cuando el contenedor se inicie
-CMD ["java", "-jar", "app.jar"]
+# Expone el puerto que usa Spring Boot (8080)
+EXPOSE 8080
+
+# Comando para ejecutar la aplicación
+ENTRYPOINT ["java", "-jar", "app.jar"]
