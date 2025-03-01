@@ -16,6 +16,17 @@ primary_region = 'iad'
   min_machines_running = 1
   processes = ['app']
 
+  [[http_service.ports]]
+    port = 80
+    handlers = ['http']
+
+  [[http_service.ports]]
+    port = 443
+    handlers = ['tls', 'http']
+
+[deploy]
+  strategy = 'rolling'
+
 [[vm]]
   memory = '1gb'
   cpu_kind = 'shared'
