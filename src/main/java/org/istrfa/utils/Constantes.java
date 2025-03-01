@@ -11,6 +11,7 @@ public class Constantes {
 
     public static final Double IGV = 18.0;
 
+
     //Prefijo 1
     public static final UUID TIPO_DOCUMENT_DNI = UUID.fromString("d7161395-0a50-48a0-a8b5-f303313ef981");
     public static final UUID TIPO_DOCUMENT_RUC = UUID.fromString("9c678009-ac15-4944-ad14-fd8d60114275");
@@ -120,6 +121,9 @@ public class Constantes {
     public static final String DOCUMENT_TYPE_SUNAT_DNI = "1";
     public static final String DOCUMENT_TYPE_SUNAT_RUC = "6";
     public static final String DOCUMENT_TYPE_SUNAT_PASAPORTE = "7";
+
+    public static final String SERIE_BOLETA = "B001";
+    public static final String NAME_TRAMITE = "COMPRA DE PRODUCTOS";
 
 
     //********** Si se estan utilizando

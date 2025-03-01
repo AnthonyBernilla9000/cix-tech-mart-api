@@ -24,6 +24,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -54,13 +55,20 @@ public class Util {
         ).trim();
     }
 
+    public static MultipartFile convertXmlToMultipart(String xmlContent, String namefile) throws IOException {
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        outputStream.write(xmlContent.getBytes(StandardCharsets.UTF_8));
+        return convertByteArrayOutputStreamToMultipart(outputStream,namefile,".xml");
+    }
 
-    public static MultipartFile convertByteArrayOutputStreamToMultipart(ByteArrayOutputStream byteArrayOutputStream, String filename) {
+
+
+    public static MultipartFile convertByteArrayOutputStreamToMultipart(ByteArrayOutputStream byteArrayOutputStream, String filename,String extension) {
         // Convertir el ByteArrayOutputStream a byte[]
         byte[] pdfBytes = byteArrayOutputStream.toByteArray();
 
         // Crear un FileItem para representar el archivo
-        FileItem fileItem = new DiskFileItem(filename, "application/pdf", false, filename + ".pdf", pdfBytes.length, null);
+        FileItem fileItem = new DiskFileItem(filename, "application/pdf", false, filename + extension, pdfBytes.length, null);
         try {
             Streams.copy(new ByteArrayResource(pdfBytes).getInputStream(), fileItem.getOutputStream(), true);
         } catch (IOException e) {
@@ -117,39 +125,6 @@ public class Util {
         return String.format("%0" + length + "d", number);
     }
 
-
-    public static MultipartFile getFileAsMultipart(String filePath) {
-        try {
-            log.info("Ruta del archivo: " + filePath);
-
-            // Usamos Paths para asegurar compatibilidad en Windows/Linux
-            Path path = Paths.get(filePath);
-            File file = path.toFile();
-
-            if (!file.exists()) {
-                throw new IllegalArgumentException("Archivo no encontrado: " + file.getAbsolutePath());
-            }
-
-            // Creamos un DiskFileItem simulando una subida de archivo
-            DiskFileItem fileItem = new DiskFileItem("file",
-                    MediaType.APPLICATION_XML_VALUE,
-                    false,
-                    file.getName(),
-                    (int) file.length(),
-                    file.getParentFile());
-
-            // Escribimos el contenido en el DiskFileItem
-            try (InputStream input = new FileInputStream(file);
-                 OutputStream os = fileItem.getOutputStream()) {
-                input.transferTo(os);
-            }
-
-            return new CommonsMultipartFile(fileItem);
-        } catch (IOException e) {
-            log.error("Error al convertir el archivo a MultipartFile: " + e.getMessage(), e);
-            return null;
-        }
-    }
 
 
 

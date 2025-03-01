@@ -154,7 +154,10 @@ public class OrderService {
         List<DetailOrderEntity> listsave = listdetails.stream().map(
                         x -> {
                             DetailOrderEntity entity = modelMapper.map(x, DetailOrderEntity.class);
-                            entity.setTotal(x.getUnitprice() * x.getQuantity());
+                            entity.setSubtotal(x.getUnitprice() * x.getQuantity());
+                            entity.setIgv(entity.getSubtotal()*Constantes.IGV/100);
+                            entity.setTotal(entity.getSubtotal());//Por la manera en la que se maneja debe ser asi
+//                            entity.setTotal(entity.getSubtotal()+entity.getIgv());
                             entity.setOrder(order);
                             entity.setDatecreate(LocalDateTime.now());
                             entity.setActive(1);

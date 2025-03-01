@@ -18,13 +18,18 @@ import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.soap.SOAPBody;
 import javax.xml.soap.SOAPMessage;
 import javax.xml.transform.TransformerException;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableEntryException;
 import java.security.cert.CertificateException;
+import java.util.Base64;
 import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 
 /**
@@ -54,12 +59,13 @@ public class LiFacManager {
     }
 
     public SunatResponseDTO createInvoice(FacturacionDetalleDTO dto) {
+        SunatResponseDTO sunatResponseDTO = new SunatResponseDTO();
 
         try {
             // Obtenemos datos del emisor
             post.setSupplier(getSupplier());
 
-            //Asignamos el ID y los datos de la factura
+            // Asignamos el ID y los datos de la factura
             post.setId(dto.getId());
             post.setBillingDetail(dto);
             post.setVoucherTypeCode(dto.getVoucherTypeCode());
@@ -69,42 +75,66 @@ public class LiFacManager {
 
             // Definimos el nombre del archivo xml
             post.setFileName(buildFileNameFactura());
-            //CLAVE SOL
+
+            // CLAVE SOL
             post.setUserClaveSol("CIX_TECH_MART");
             post.setPassClaveSol("CIX_TECH_MART");
 
             // CONSTRUIR EL XML CON DATA DINÁMICA
             String xml = Ubl21.createStringXmlInvoice(post);
 
-            // Construimos el xml y firmamos con el certificado digital (Método devuelve xml firmado y el digestValue)
+            // Firmamos el XML y obtenemos el XML firmado y digestValue
             Map<String, String> xmlFirmado = signatureXML.signXML(xml);
 
-            System.out.println("Este es el xml> "+xmlFirmado.get("xml"));
+            // Agregamos el XML firmado en la respuesta
+            sunatResponseDTO.setXml(xmlFirmado.get("xml"));
 
-            // ENCONDE SUNAT
-            String enconde = sunatService.sunatEncodeAndZip(xmlFirmado, dto.getId(), post.getFileName());
+            // ENCODE + ZIP del XML firmado en memoria (sin guardar en local)
+            String encodedXml = encodeAndZipInMemory(xmlFirmado.get("xml"), post.getFileName());
 
-            //Codifica, zipea y envia a sunat
-            SOAPMessage response = clientSunat.sendBillCPE(enconde, post);
+            // Enviar el XML a SUNAT y obtener respuesta
+            SOAPMessage response = clientSunat.sendBillCPE(encodedXml, post);
 
+            // Procesar la respuesta SOAP de SUNAT
             SOAPBody soapResponseBody = response.getSOAPBody();
             sunatResponseDTO.setCode("-11");
             if (soapResponseBody.hasFault()) {
-                // Aca se lee el error de SUNAT
+                // Error en la respuesta de SUNAT
                 sunatResponseDTO.setMessage(soapResponseBody.getFault().getFaultString());
             } else {
+                // Procesamos la respuesta exitosa de SUNAT
                 sunatResponseDTO = sunatService.sunatDecodeResponse(response, dto.getId().toString());
                 sunatResponseDTO.setDigestValue(xmlFirmado.get("digestValue"));
                 sunatResponseDTO.setFileName(post.getFileName());
+                sunatResponseDTO.setXml(xmlFirmado.get("xml"));
             }
 
         } catch (Exception e) {
-            log.error("ERROR_CREATE_INVOCE_SUNAT->" , e);
+            log.error("ERROR_CREATE_INVOICE_SUNAT->", e);
             sunatResponseDTO.setCode("-1");
-            // ACA DEBE CAMBIARSE EL ESTADO OSE A PENDIENTE Y NO DEBE GENERARSE UN COMPROBANTE ELECTRÓNICO
-            sunatResponseDTO.setMessage("No se pudo procesar la respuesta de SUNAT, sin embargo se ha guardado en estado PENDIENTE.");
+            sunatResponseDTO.setMessage("Error al procesar la respuesta de SUNAT. Estado: PENDIENTE.");
         }
+
         return sunatResponseDTO;
+    }
+
+    private String encodeAndZipInMemory(String xmlContent, String fileName) {
+        try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+             ZipOutputStream zipOutputStream = new ZipOutputStream(byteArrayOutputStream, StandardCharsets.UTF_8)) {
+
+            // Agregamos el XML al ZIP
+            zipOutputStream.putNextEntry(new ZipEntry(fileName + ".xml"));
+            zipOutputStream.write(xmlContent.getBytes(StandardCharsets.UTF_8));
+            zipOutputStream.closeEntry();
+
+            zipOutputStream.finish();
+
+            // Convertimos el ZIP a Base64
+            return Base64.getEncoder().encodeToString(byteArrayOutputStream.toByteArray());
+
+        } catch (IOException e) {
+            throw new RuntimeException("Error al crear el ZIP en memoria", e);
+        }
     }
 
 

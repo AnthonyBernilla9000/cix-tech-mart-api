@@ -15,6 +15,7 @@ import com.stripe.param.checkout.SessionCreateParams;
 import lombok.extern.slf4j.Slf4j;
 import org.istrfa.dto.ResponseDTO;
 import org.istrfa.dto.SessionStripeDTO;
+import org.istrfa.dto.SunatResponseDTO;
 import org.istrfa.models.DetailOrderEntity;
 import org.istrfa.models.MasterEntity;
 import org.istrfa.models.OrderEntity;
@@ -50,30 +51,30 @@ public class StripeService {
     @Value("${stripe.key-secret}")
     private String stripeApiKey;
 
+
     private final OrderRepository orderRepository;
     private final DetailOrderRepository detailOrderRepository;
     private final ProductRepository productRepository;
     private final EmailService emailService;
     private final TicketService ticketService;
-
+    private final BillingService billingService;
 
     @Value("${templates.order-pay}")
     private String htmlorderpay;
 
-    @Value("${directory.folder-xmls}")
-    private String folderXmls;
 
     @Autowired
-    public StripeService(OrderRepository orderRepository, DetailOrderRepository detailOrderRepository, ProductRepository productRepository, EmailService emailService, TicketService ticketService) {
+    public StripeService(OrderRepository orderRepository, DetailOrderRepository detailOrderRepository, ProductRepository productRepository, EmailService emailService, TicketService ticketService, BillingService billingService) {
         this.orderRepository = orderRepository;
         this.detailOrderRepository = detailOrderRepository;
         this.productRepository = productRepository;
         this.emailService = emailService;
         this.ticketService = ticketService;
+        this.billingService = billingService;
     }
 
 
-    public ResponseDTO<String> createCheckoutSession(UUID idOrden,String urlreturn) throws StripeException {
+    public ResponseDTO<String> createCheckoutSession(UUID idOrden, String urlreturn) throws StripeException {
         // Configurar Stripe con la clave secreta
         Stripe.apiKey = stripeApiKey;
         OrderEntity orden = orderRepository.getById(idOrden);
@@ -106,8 +107,8 @@ public class StripeService {
         // Crear la sesión de Stripe Checkout
         SessionCreateParams params = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.PAYMENT) // Modo de pago único
-                .setSuccessUrl(urlreturn+"/shop/order;session_payment_id={CHECKOUT_SESSION_ID}" + ";idOrder=" + orden.getId())
-                .setCancelUrl(urlreturn+"/shop/order?idOrder=" + orden.getId())
+                .setSuccessUrl(urlreturn + "/shop/order;session_payment_id={CHECKOUT_SESSION_ID}" + ";idOrder=" + orden.getId())
+                .setCancelUrl(urlreturn + "/shop/order?idOrder=" + orden.getId())
                 .addAllLineItem(lineItems) // Agregar todos los ítems
                 .build();
 
@@ -208,11 +209,15 @@ public class StripeService {
 
     private void sendCorreoOrder(OrderEntity order) throws IOException, DocumentException, WriterException {
         List<DetailOrderEntity> listdetails = detailOrderRepository.findByOrder(order.getId());
-        MultipartFile file = ticketService.createTicketOrder(order,order.getClient(), listdetails);
-//        MultipartFile xml=Util.getFileAsMultipart(folderXmls+"/550e8400-e29b-41d4-a716-446655440000/"+"10732521386-03-B001-00012345.xml");
+        MultipartFile file = ticketService.createTicketOrder(order, order.getClient(), listdetails);
         List<MultipartFile> lisfiles = new ArrayList<>();
         lisfiles.add(file);
-//        if (Objects.nonNull(xml)) lisfiles.add(xml);
+        SunatResponseDTO sunatresponse = billingService.sendSunat(order, listdetails);
+        System.out.println("Esta es respuesta de SUNAT " + sunatresponse);
+        if (sunatresponse.getCode().equals("0")) {
+            MultipartFile fileXml = Util.convertXmlToMultipart(sunatresponse.getXml(), "SunatXML");
+            lisfiles.add(fileXml);
+        }
 
         emailService.sendHtmlAndArchivos(order.getClient().getEmail(), "ENVIO DE BOLETA DE VENTA",
                 setDataOrdertoDocuement(order),
@@ -227,7 +232,8 @@ public class StripeService {
         Element numberOrderElement = document.selectFirst(".number_order");
         if (Objects.nonNull(numberOrderElement)) numberOrderElement.text(order.getCode());
         Element dateOrdenElement = document.selectFirst(".date_order");
-        if (Objects.nonNull(dateOrdenElement)) dateOrdenElement.text(Util.formatLocalDateTime(order.getDatecreate(),"dd/MM/yyyy"));
+        if (Objects.nonNull(dateOrdenElement))
+            dateOrdenElement.text(Util.formatLocalDateTime(order.getDatecreate(), "dd/MM/yyyy"));
         return document.outerHtml();
     }
 
@@ -236,7 +242,7 @@ public class StripeService {
     private void updateStockProduct(UUID idOrden) {
         List<DetailOrderEntity> list = detailOrderRepository.findByOrder(idOrden);
         for (DetailOrderEntity x : list) {
-            if(Objects.isNull(x.getProduct()))continue;//En caso sea de envio
+            if (Objects.isNull(x.getProduct())) continue;//En caso sea de envio
             ProductEntity product = productRepository.getById(x.getProduct().getId());
             product.setStock(product.getStock() - x.getQuantity());
             productRepository.save(product);

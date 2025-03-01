@@ -1,7 +1,7 @@
 server:
   servlet:
     context-path: /cix-tech-mart-api/v1/
-  port: 8080
+  port: 8081
 
 # Configuración PostgreSQL básica
 spring:
@@ -20,8 +20,6 @@ spring:
     database-platform: org.hibernate.dialect.PostgreSQLDialect # Corregido
 services:
   api-peru: https://dniruc.apisperu.com/api/v1
-#  api-billing: http://localhost:8081/cix-tech-mart-api-billing/v1
-  api-billing: http://localhost:8082/cix-tech-mart-api-billing/v1
 
 logging:
   pattern:

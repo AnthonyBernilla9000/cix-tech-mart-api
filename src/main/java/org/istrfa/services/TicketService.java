@@ -60,7 +60,7 @@ public class TicketService {
         document.close();
 
         // Devuelve el PDF como MultipartFile
-        return Util.convertByteArrayOutputStreamToMultipart(byteArrayOutputStream, "BOLETA");
+        return Util.convertByteArrayOutputStreamToMultipart(byteArrayOutputStream, "BOLETA",".pdf");
     }
 
     private PdfPTable creatHeader(OrderEntity order) throws BadElementException, IOException {
